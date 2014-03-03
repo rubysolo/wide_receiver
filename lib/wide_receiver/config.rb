@@ -6,9 +6,14 @@ module WideReceiver
     end
 
     attr_accessor :queue_url
+    attr_writer :message_format
 
     def self.instance
       @instance ||= new
+    end
+
+    def message_format
+      @message_format || :raw
     end
 
     def adapter

@@ -1,3 +1,5 @@
+require 'json'
+
 module WideReceiver
   module Adapters
   end

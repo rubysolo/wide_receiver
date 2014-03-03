@@ -6,21 +6,33 @@ end
 module WideReceiver
   module Adapters
     class RedisAdapter
-      def initialize(channel, workers, queue_uri: Config.instance.queue_uri)
+      attr_reader :config
+
+      def initialize(channel, workers, config: Config.instance)
         @pattern = channel
         @worker_classes = workers.map { |w| Object.const_get(w) }
-        @redis = Redis.new(config(queue_uri))
+        @config = config
+        @redis = Redis.new(redis_config(config.queue_uri))
       end
 
       def work
         @redis.psubscribe(@pattern) do |on|
           on.pmessage do |pattern, channel, message|
-            send_workers channel, message
+            send_workers channel, processed(message)
           end
         end
       end
 
       private
+
+      def processed(message)
+        case config.message_format
+        when :json
+          JSON.parse(message)
+        else
+          message
+        end
+      end
 
       def send_workers(channel, message)
         @worker_classes.each do |worker_class|
@@ -28,7 +40,7 @@ module WideReceiver
         end
       end
 
-      def config(uri)
+      def redis_config(uri)
         {
           host: uri.host,
           port: uri.port,
