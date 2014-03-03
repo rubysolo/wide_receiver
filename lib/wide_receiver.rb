@@ -1,0 +1,5 @@
+require "wide_receiver/config"
+require "wide_receiver/registry"
+require "wide_receiver/worker"
+require "wide_receiver/master"
+require "wide_receiver/version"
