@@ -2,8 +2,13 @@ require 'spec_helper'
 require 'wide_receiver/adapters/redis_adapter'
 
 class WideReceiver::Adapters::RedisAdapter
-  attr_reader :redis
   public :send_workers, :processed
+end
+
+class BrokenWorker
+  def perform(*args)
+    raise "kaboom"
+  end
 end
 
 describe WideReceiver::Adapters::RedisAdapter do
@@ -35,6 +40,15 @@ describe WideReceiver::Adapters::RedisAdapter do
     config.stub(:message_format).and_return(:json)
     adapter = described_class.new(:foo, [], config: config)
     expect(adapter.processed('{"hello":"json"}')).to eq('hello' => 'json')
+  end
+
+  it 'records failed jobs in a queue' do
+    WideReceiver::Config.instance.queue_url = 'redis://localhost:6379/8'
+    adapter = described_class.new(:foo, ['BrokenWorker'])
+    expect {
+      adapter.send_workers('high-priority', 'hello world')
+    }.to_not raise_error
+    expect(adapter.redis.llen 'failures').to eq 1
   end
 
 end

@@ -12,6 +12,10 @@ module WideReceiver
       @instance ||= new
     end
 
+    def self.reset!
+      @instance = nil
+    end
+
     def message_format
       @message_format || :raw
     end

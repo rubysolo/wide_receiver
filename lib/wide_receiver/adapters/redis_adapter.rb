@@ -1,18 +1,19 @@
 begin
   require 'redis'
+  require 'redis-namespace'
 rescue LoadError => e
 end
 
 module WideReceiver
   module Adapters
     class RedisAdapter
-      attr_reader :config
+      attr_reader :config, :redis
 
       def initialize(channel, workers, config: Config.instance)
         @pattern = channel
-        @worker_classes = workers.map { |w| Object.const_get(w) }
-        @config = config
-        @redis = Redis.new(redis_config(config.queue_uri))
+        @workers = workers.map { |w| Object.const_get(w) }
+        @config  = config
+        @redis   = Redis::Namespace.new(:wide_receiver, redis: Redis.new(redis_config(config.queue_uri)))
       end
 
       def work
@@ -28,15 +29,24 @@ module WideReceiver
       def processed(message)
         case config.message_format
         when :json
-          JSON.parse(message)
+          MultiJson.load(message)
         else
           message
         end
       end
 
       def send_workers(channel, message)
-        @worker_classes.each do |worker_class|
-          worker_class.new.perform(channel, message)
+        @workers.each do |worker_class|
+          begin
+            worker_class.new.perform(channel, message)
+          rescue => e
+            @redis.lpush 'failures', MultiJson.dump(
+              worker:     worker_class.to_s,
+              channel:    channel,
+              message:    message,
+              exception:  e.message
+            )
+          end
         end
       end
 

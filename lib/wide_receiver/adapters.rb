@@ -1,4 +1,4 @@
-require 'json'
+require 'multi_json'
 
 module WideReceiver
   module Adapters
