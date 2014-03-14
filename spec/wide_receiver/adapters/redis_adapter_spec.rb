@@ -19,7 +19,7 @@ describe WideReceiver::Adapters::RedisAdapter do
 
   it 'configures redis connection' do
     adapter = described_class.new(:foo, [], config: config)
-    redis_client = adapter.redis.client
+    redis_client = adapter.input.client
     expect(redis_client.host).to eq 'localhost'
   end
 
@@ -48,7 +48,7 @@ describe WideReceiver::Adapters::RedisAdapter do
     expect {
       adapter.send_workers('high-priority', 'hello world')
     }.to_not raise_error
-    expect(adapter.redis.llen 'failures').to eq 1
+    expect(adapter.error.llen 'failures').to eq 1
   end
 
 end
