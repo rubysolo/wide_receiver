@@ -17,7 +17,7 @@ module WideReceiver
       end
 
       def work
-        @redis.psubscribe(@pattern) do |on|
+        @redis.redis.psubscribe(@pattern) do |on|
           on.pmessage do |pattern, channel, message|
             send_workers channel, processed(message)
           end
