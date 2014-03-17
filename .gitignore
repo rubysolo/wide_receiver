@@ -6,7 +6,8 @@
 Gemfile.lock
 InstalledFiles
 _yardoc
-bin
+bin/*
+!bin/wide_receiver
 coverage
 doc/
 lib/bundler/man

@@ -22,10 +22,8 @@ module WideReceiver
           adapter.new(channel, workers).work
         end
       end
-    end
 
-    def stop
-      @threads.each { |t| Thread.kill(t) }
+      @threads.each { |t| t.join }
     end
 
     def thread_count

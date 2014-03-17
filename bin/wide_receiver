@@ -1,0 +1,9 @@
+#!/bin/env ruby
+
+require 'wide_receiver'
+
+config = ARGV.first
+require File.expand_path(config, Dir.pwd) if config
+
+master = WideReceiver::Master.new
+master.start
