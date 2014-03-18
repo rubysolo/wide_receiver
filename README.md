@@ -19,13 +19,6 @@ Or install it yourself as:
 
 ## Usage
 
-Configure Wide Receiver to connect to your queuing system (currently only
-supports Redis pubsub):
-
-```ruby
-WideReceiver::Config.instance.queue_url = 'redis://localhost/6379/5'
-```
-
 Create a worker class that extends `WideReceiver::Worker` and specifies which channel
 patterns it wants to process:
 
@@ -42,18 +35,32 @@ end
 
 Start the master process:
 
-```ruby
-WideReceiver::Master.new.start
+```shell
+bundle exec wide_receiver config/wide_receiver.rb
 ```
 
 This will start one thread per unique channel pattern.  When a message is
 received on a matching channel, each worker class that expressed interest in
 that pattern will be instantiated, and the instance will receive the message.
 
+The config file should set the queue_url, (optionally) the message format, and
+require all your worker classes.  Here's an example config file from a Rails
+project:
+
+```ruby
+require_relative 'environment'
+
+WideReceiver::Config.instance.queue_url = Redis.current.id
+WideReceiver::Config.instance.message_format = :json
+
+Dir[Rails.root.join('app/workers/wide_receiver/*.rb')].each do |worker|
+  require worker
+end
+```
+
 ## TODO
 
 - add support for RabbitMQ
-- add proper command line runner
 
 ## Contributing
 
