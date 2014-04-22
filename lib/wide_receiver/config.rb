@@ -5,8 +5,16 @@ module WideReceiver
     class NullUri < Struct.new(:scheme, :host, :port, :path)
     end
 
+    class NullLogger
+      def fatal; end
+      def error; end
+      def warn;  end
+      def info;  end
+      def debug; end
+    end
+
     attr_accessor :queue_url
-    attr_writer :message_format
+    attr_writer :message_format, :logger
 
     def self.instance
       @instance ||= new
@@ -26,6 +34,10 @@ module WideReceiver
 
     def queue_uri
       @uri ||= URI.parse(queue_url) rescue NullUri.new('null', nil, nil, nil)
+    end
+
+    def logger
+      @logger ||= NullLogger.new
     end
   end
 end

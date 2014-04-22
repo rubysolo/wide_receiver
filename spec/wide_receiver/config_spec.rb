@@ -16,4 +16,18 @@ describe WideReceiver::Config do
     expect(config.queue_uri.host).to be_nil
   end
 
+  it 'allows setting a logger' do
+    logger = double
+
+    config = described_class.new
+    config.logger = logger
+    expect(logger).to receive(:debug)
+
+    logger.debug "message"
+  end
+
+  it 'provides a null logger' do
+    config = described_class.new
+    expect { config.logger.debug }.to_not raise_error
+  end
 end
