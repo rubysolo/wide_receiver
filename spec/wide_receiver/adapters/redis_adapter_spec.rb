@@ -15,7 +15,8 @@ describe WideReceiver::Adapters::RedisAdapter do
 
   let(:worker_instance) { double }
   let(:worker_class)    { double('WorkerClass', new: worker_instance) }
-  let(:config)          { double('Config', queue_uri: URI.parse('redis://localhost:6379/8')) }
+  let(:logger)          { WideReceiver::Config::NullLogger.new }
+  let(:config)          { double('Config', queue_uri: URI.parse('redis://localhost:6379/8'), logger: logger) }
 
   it 'configures redis connection' do
     adapter = described_class.new(:foo, [], config: config)

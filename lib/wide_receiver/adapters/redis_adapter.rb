@@ -7,20 +7,23 @@ end
 module WideReceiver
   module Adapters
     class RedisAdapter
-      attr_reader :config, :input, :error
+      attr_reader :config, :input, :error, :logger
 
       def initialize(channel, workers, config: Config.instance)
         @pattern = channel
         @workers = workers.map { |w| Object.const_get(w) }
         @config  = config
+        @logger  = config.logger
 
         @input   = redis_connection
         @error   = Redis::Namespace.new(:wide_receiver, redis: redis_connection)
+        logger.debug { "started redis adapter" }
       end
 
       def work
         @input.psubscribe(@pattern) do |on|
           on.pmessage do |pattern, channel, message|
+            logger.info { "received message '#{ channel }'" }
             send_workers channel, processed(message)
           end
         end
@@ -40,8 +43,10 @@ module WideReceiver
       def send_workers(channel, message)
         @workers.each do |worker_class|
           begin
+            logger.debug { "  sending message to '#{ worker_class }'" }
             worker_class.new.perform(channel, message)
           rescue => e
+            logger.error { "-->  ERROR #{ e.message } sending message '#{ channel }' to #{ worker_class }\n#{ message }" }
             @error.lpush 'failures', MultiJson.dump(
               worker:     worker_class.to_s,
               channel:    channel,
