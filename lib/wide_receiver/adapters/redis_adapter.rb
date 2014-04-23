@@ -23,7 +23,9 @@ module WideReceiver
       def work
         @input.psubscribe(@pattern) do |on|
           on.pmessage do |pattern, channel, message|
-            logger.info { "received message '#{ channel }'" }
+            logger.info  { "received message '#{ channel }'" }
+            logger.debug { message }
+
             send_workers channel, processed(message)
           end
         end
@@ -45,8 +47,10 @@ module WideReceiver
           begin
             logger.debug { "  sending message to '#{ worker_class }'" }
             worker_class.new.perform(channel, message)
+
           rescue => e
-            logger.error { "-->  ERROR #{ e.message } sending message '#{ channel }' to #{ worker_class }\n#{ message }" }
+            logger.error { "  *** ERROR [#{ worker_class }]: #{ e.message }" }
+
             @error.lpush 'failures', MultiJson.dump(
               worker:     worker_class.to_s,
               channel:    channel,
