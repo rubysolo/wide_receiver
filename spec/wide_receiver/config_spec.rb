@@ -30,4 +30,12 @@ describe WideReceiver::Config do
     config = described_class.new
     expect { config.logger.debug }.to_not raise_error
   end
+
+  it 'sets configuration via a block' do
+    described_class.configure do |config|
+      config.queue_url = 'redis://localhost:6379/5'
+    end
+
+    expect(described_class.instance.queue_uri.scheme).to eq 'redis'
+  end
 end

@@ -16,6 +16,10 @@ module WideReceiver
     attr_accessor :queue_url
     attr_writer :message_format, :logger
 
+    def self.configure
+      yield instance
+    end
+
     def self.instance
       @instance ||= new
     end
