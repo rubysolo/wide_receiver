@@ -20,6 +20,7 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "redis"
   spec.add_dependency "redis-namespace"
+  spec.add_dependency "bunny"
   spec.add_dependency "multi_json"
 
   spec.add_development_dependency "bundler", "~> 1.5"
