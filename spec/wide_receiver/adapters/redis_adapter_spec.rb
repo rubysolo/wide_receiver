@@ -25,8 +25,7 @@ describe WideReceiver::Adapters::RedisAdapter do
   end
 
   it 'sends perform message to worker instances' do
-    allow(Object).to receive(:const_get).with('SomeClass')
-                                        .and_return(worker_class)
+    Object.stub(:const_get).with('SomeClass').and_return(worker_class)
     adapter = described_class.new(:foo, ['SomeClass'])
 
     expect(worker_instance).to receive(:perform).with(19, 'breaker, breaker')
@@ -39,7 +38,7 @@ describe WideReceiver::Adapters::RedisAdapter do
   end
 
   it 'parses JSON message if message_format is configured' do
-    allow(config).to receive(:message_format).and_return(:json)
+    config.stub(:message_format).and_return(:json)
     adapter = described_class.new(:foo, [], config: config)
     expect(adapter.processed('{"hello":"json"}')).to eq('hello' => 'json')
   end
