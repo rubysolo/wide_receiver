@@ -13,7 +13,7 @@ module WideReceiver
       def debug; end
     end
 
-    attr_accessor :queue_url
+    attr_accessor :queue_url, :options
     attr_writer :message_format, :logger
 
     def self.configure

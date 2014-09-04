@@ -1,0 +1,21 @@
+#!/usr/bin/env ruby
+require 'main'
+require 'bunny'
+
+require_relative '../lib/pub'
+
+Main {
+  argument('routing_key') {
+    description 'Specify the routing key'
+  }
+  argument('payload') {
+    description 'Specify the payload'
+  }
+
+  def run
+    routing_key = params['routing_key'].values.first
+    payload     = params['payload'].values.first
+
+    Pub.new(:a).send( routing_key, payload )
+  end
+}
