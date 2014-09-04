@@ -5,7 +5,7 @@ end
 
 module WideReceiver
   module Adapters
-    class RabbitAdapter
+    class AmqpAdapter
       attr_reader :config, :logger, :pattern, :settings
 
       def initialize(pattern, workers, config: Config.instance)
@@ -15,9 +15,7 @@ module WideReceiver
         @logger   = config.logger
         @settings = sync_options( config.options )
 
-        init_rabbit
-        init_error_queue
-        logger.debug { "started rabbitMQ adapter" }
+        logger.debug { "started AMQP adapter" }
       end
 
       def work
@@ -30,30 +28,43 @@ module WideReceiver
         }
       end
 
+      def error_channel
+        @error_channel ||= connection.create_channel
+      end
+
+      def error_queue
+        @error_queue ||= error_channel.queue(:wr_errors)
+      end
+
+      def queue
+        @queue ||= begin
+          channel.queue(settings[:queue][:name], settings[:queue])
+        end
+      end
+
+      def exchange
+        @exchange ||= channel.topic(settings[:exchange][:topic],
+                                    settings[:exchange])
+      end
+
+      def channel
+        @channel ||= connection.create_channel
+      end
+
       private
 
-      def init_error_queue
-        @error_channel = connection.create_channel
-        @error_queue   = @error_channel.queue("wr_errors")
+      def log_error(error)
+        error_channel.default_exchange
+                     .publish(error, routing_key: error_queue.name)
       end
 
-      def queue_error( error )
-        @error_channel.default_exchange
-                      .publish(error, :routing_key => @error_queue.name)
-      end
-
-      def error_queue() @error_queue end
-      def queue()       @queue       end
-      def exchange()    @exchange    end
-      def channel()     @channel     end
-
-      def sync_options( options )
+      def sync_options(options)
         opts = {
           exchange: {
             topic: :default
           },
           queue: {
-            name:        "",
+            name:        '',
             durable:     false,
             auto_delete: false,
             exclusive:   false
@@ -65,22 +76,13 @@ module WideReceiver
         }
 
         if options
-          opts[:exchange].merge!( options[:exchange] )   if options[:exchange]
-          opts[:queue].merge!( options[:queue] )         if options[:queue]
-          opts[:subscribe].merge!( options[:subscribe] ) if options[:subscribe]
+          opts[:exchange].merge!( options[:exchange] )   if options.key? :exchange
+          opts[:queue].merge!( options[:queue] )         if options.key? :queue
+          opts[:subscribe].merge!( options[:subscribe] ) if options.key? :subscribe
         end
         auto_delete = opts[:queue].delete(:auto_delete)
         opts[:queue]['auto-delete'.to_sym] = auto_delete
         opts
-      end
-
-      def init_rabbit
-        connection.start
-
-        @channel  = connection.create_channel
-        @exchange = channel.topic(settings[:exchange][:topic],
-                                  settings[:exchange])
-        @queue    = channel.queue(settings[:queue][:name], settings[:queue])
       end
 
       def processed(message)
@@ -100,7 +102,7 @@ module WideReceiver
           rescue => e
             logger.error { "  *** ERROR [#{ worker_class }]: #{ e.message }" }
 
-            queue_error MultiJson.dump(
+            log_error MultiJson.dump(
               worker:     worker_class.to_s,
               channel:    delivery[:routing_key],
               message:    message,
@@ -112,10 +114,14 @@ module WideReceiver
       end
 
       def connection
-        @connection ||= Bunny.new(rabbit_config(config.queue_uri))
+        @connection ||= begin
+          con = Bunny.new(amqp_config(config.queue_uri))
+          con.start
+          con
+        end
       end
 
-      def rabbit_config(uri)
+      def amqp_config(uri)
         config = {
           host: uri.host,
           port: uri.port

@@ -58,9 +58,25 @@ Dir[Rails.root.join('app/workers/wide_receiver/*.rb')].each do |worker|
 end
 ```
 
-## TODO
+Alternatively, you can setup RabbitMQ support using the following configuration:
 
-- add support for RabbitMQ
+```ruby
+require_relative 'environment'
+
+WideReceiver::Config.instance.queue_url      = "amqp://localhost:5672"
+WideReceiver::Config.instance.message_format = :json
+WideReceiver::Config.instance.options        = {
+  exchange: {
+    topic: 'montana'
+  },
+  queue: {
+    auto_delete: true
+  }
+}
+Dir[Rails.root.join('app/workers/wide_receiver/*.rb')].each do |worker|
+  require worker
+end
+```
 
 ## Contributing
 

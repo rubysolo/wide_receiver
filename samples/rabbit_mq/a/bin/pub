@@ -2,10 +2,9 @@
 require 'main'
 require 'bunny'
 
-require_relative 'lib/pub'
+require_relative '../lib/pub'
 
 Main {
-  argument 'exchange'
   argument 'routing_key'
   argument 'payload'
 
